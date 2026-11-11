@@ -28,7 +28,7 @@ function lb(i){let x=document.getElementById('lbx');if(!x){x=document.createElem
 document.addEventListener('keydown',e=>{if(e.key=='Escape')document.getElementById('lbx')?.remove()});
 const $=s=>document.querySelector(s),app=$('#app');
 const DEF={price:1490,rooms:25,maxCouples:25,perRoom:1,maxInst:6,firstDue:'2026-12-10',pix:'promessavilamedeiros@paulistanacentral.org',rules:'Um investimento espiritual, relacional e preventivo\n\nO encontro foi pensado para oferecer aos casais um espaço seguro de conexão, aprendizado, espiritualidade e convivência.\n\nOs momentos de descanso, alimentação, lazer e descontração fazem parte da experiência, criando condições para que o casal desacelere e esteja verdadeiramente presente.\n\nO objetivo é que cada casal retorne para casa fortalecido, levando consigo princípios, conversas e experiências que continuem produzindo frutos depois do encontro.',open:'2026-11-01',close:'2027-04-15',vista:true,parc:true};
-let db=null,user=null,admin=false,cfg={...DEF},regs=[],view='home',tab='dash',step=0,F={},sel=null,flt={q:'',ig:'',mod:'',fin:'',st:''},errs=[],done=null;
+let user=null,admin=false,cfg={...DEF},regs=[],view='home',tab='dash',step=0,F={},sel=null,flt={q:'',ig:'',mod:'',fin:'',st:''},errs=[],done=null;
 const R=v=>'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),D=s=>s?new Date(s+'T12:00').toLocaleDateString('pt-BR'):'—',today=()=>new Date().toISOString().slice(0,10);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fin(r){const p=r.inst.filter(i=>i.paid).length;return p==r.inst.length?'Pago integralmente':p?'Parcialmente pago':'Pendente'}
