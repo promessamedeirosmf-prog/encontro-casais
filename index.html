@@ -46,7 +46,7 @@ const SUPABASE_URL='https://dfxkyhaalcrnpybdduev.supabase.co',SUPABASE_ANON_KEY=
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const DL={save:async({filename,data})=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:filename.endsWith('.csv')?'text/csv;charset=utf-8':'text/html;charset=utf-8'}));a.download=filename;a.click()}};
 const db={doc:p=>{const[t,id]=p.split('/');return{
- set:async d=>{const q=t=='regs'?sb.from(t).insert({id,data:d}):sb.from(t).upsert({id,data:d});const{error}=await q;if(error)throw new Error(error.code=='23505'?'Já existe uma inscrição para este casal (mesmos e-mails).':/Vagas/.test(error.message)?'As vagas se esgotaram.':error.message);await load()},
+ set:async d=>{const q=t=='regs'?sb.from(t).insert({id,data:d}):sb.from(t).upsert({id,data:d});const{error}=await q;if(error)throw new Error(error.code=='23505'?'Já existe uma inscrição para este casal (mesmos e-mails).':/Vagas/.test(error.message)?'As vagas se esgotaram.':/Prazo/.test(error.message)?'A última parcela não pode passar de 25/04/2027. Escolha uma data anterior ou menos parcelas.':error.message);await load()},
  update:async p2=>{const r=regs.find(x=>x.id==id),{id:_i,...cur}=r;const{error}=await sb.from(t).update({data:{...cur,...p2}}).eq('id',id);if(error)throw new Error(error.message);await load()}}}};
 async function init(){
  const{data:{session}}=await sb.auth.getSession();admin=!!session;
@@ -136,7 +136,7 @@ var authEmail='';
 const NOTE='<b>Importante:</b> a reserva será efetuada mediante o pagamento da <b>primeira parcela</b> ou do <b>pagamento à vista</b>. O comprovante precisa ser enviado para a <b>Elaine</b> no WhatsApp <b>(11) 99916-0222</b>.';
 function addM(s,k){const a=s.split('-').map(Number),t=a[1]-1+k,Y=a[0]+Math.floor(t/12),M=((t%12)+12)%12,dim=new Date(Y,M+1,0).getDate();return Y+'-'+String(M+1).padStart(2,'0')+'-'+String(Math.min(a[2],dim)).padStart(2,'0')}
 function addD(s,k){const d=new Date(s+'T12:00');d.setDate(d.getDate()+k);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function plan(n,mod){return mod=='vista'?[{n:1,due:addD(today(),+cfg.vistaDias||30),amount:PRICE(),paid:false}]:mkInst(PRICE(),n,firstDate())}
+function plan(n,mod){return mod=='vista'?[{n:1,due:(a=>a>cfg.lastDue?cfg.lastDue:a)(addD(today(),+cfg.vistaDias||30)),amount:PRICE(),paid:false}]:mkInst(PRICE(),n,firstDate())}
 function maxParc(f){f=f||today();let n=1;for(let k=2;k<=Math.min(6,+cfg.maxInst||6);k++){if(addM(f,k-1)<=cfg.lastDue)n=k;else break}return n}
 const NOTIFY_URL='https://script.google.com/macros/s/AKfycbwnXx9nihmHCQc8MF3BKHKmEm9nUYMGTrpEBGcBhZyCZit8rNdcVmokMqrK3bqpxOJW/exec',NOTIFY_KEY='ec27-9c8a8dd71c8f0f38';
 function avisar(r){if(!/^https:\/\/script\.google\.com\//.test(NOTIFY_URL))return;try{fetch(NOTIFY_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:NOTIFY_KEY,r})}).catch(()=>{})}catch(e){}}
@@ -194,7 +194,7 @@ function calcFin(r){const pg=r.inst.filter(i=>i.paid),ps=pg.reduce((s,i)=>s+i.am
  if(cort){total=ps;inst=pg.length?pg:zero}
  else{if(tot<ps-0.001)return{err:'O valor total não pode ser menor que o já pago ('+R(ps)+').'};const saldo=Math.round((tot-ps)*100)/100;total=tot;
   if(saldo<=0)inst=pg.length?pg:zero;
-  else{const k=+$('#f_n').value,d0=toISO($('#f_d').value);if(!d0)return{err:'Data da 1ª parcela inválida. Use dd/mm/aaaa.'};const iv=$('#f_i').value,base=Math.floor(saldo/k*100)/100,nw=[];for(let i=0;i<k;i++)nw.push({n:0,due:iv=='m'?addM(d0,i):addD(d0,30*i),amount:i==k-1?Math.round((saldo-base*(k-1))*100)/100:base,paid:false});inst=[...pg,...nw]}}
+  else{const k=+$('#f_n').value,d0=toISO($('#f_d').value);if(!d0)return{err:'Data da 1ª parcela inválida. Use dd/mm/aaaa.'};const iv=$('#f_i').value,base=Math.floor(saldo/k*100)/100,nw=[];for(let i=0;i<k;i++)nw.push({n:0,due:iv=='m'?addM(d0,i):addD(d0,30*i),amount:i==k-1?Math.round((saldo-base*(k-1))*100)/100:base,paid:false});if(nw.some(x=>x.due>cfg.lastDue))return{err:'A última parcela não pode passar de '+D(cfg.lastDue)+'. Ajuste a data da 1ª parcela, o intervalo ou o número de parcelas.'};inst=[...pg,...nw]}}
  inst=inst.map((i,x)=>({...i,n:x+1}));return{cort,total,inst,mod:inst.length==1&&!pg.length?'vista':'parc'}}
 const finLog=(r,c)=>'Financeiro: '+(c.cort?'cortesia (saldo abonado)':'total '+R(r.total)+' → '+R(c.total))+'; '+c.inst.length+' parcela(s): '+c.inst.map(i=>i.n+'/ '+D(i.due)+' / '+R(i.amount)).join(', ');
 const finPatch=(r,c)=>({total:c.total,inst:c.inst,mod:c.mod,ajuste:true,...(c.inst.every(i=>i.paid)&&r.st=='Pendente'?{st:'Confirmada'}:{})});
